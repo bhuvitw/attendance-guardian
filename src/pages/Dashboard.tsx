@@ -3,6 +3,7 @@ import { SubjectCard } from "@/components/SubjectCard";
 import { StatCard } from "@/components/StatCard";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { BarChart3, GraduationCap, AlertTriangle, TrendingUp, Calendar, Settings } from "lucide-react";
 import { useAttendanceData } from "@/hooks/useAttendanceData";
 import { calculateStatus, calculateBunks, calculateMustAttend } from "@/lib/calculations";
@@ -41,6 +42,7 @@ export default function Dashboard() {
                 <Calendar className="h-4 w-4" />
                 <span className="hidden sm:inline ml-2">Mark</span>
               </Button>
+              <ThemeToggle />
               <Button variant="ghost" size="icon" onClick={() => navigate("/settings")}>
                 <Settings className="h-4 w-4" />
               </Button>

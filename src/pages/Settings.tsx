@@ -1,24 +1,57 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { TimetableUpload } from "@/components/TimetableUpload";
+import { SubjectManager } from "@/components/SubjectManager";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ArrowLeft, Calendar, FileUp, Download, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { useAttendanceData } from "@/hooks/useAttendanceData";
+import { ParsedTimetable } from "@/lib/timetableParser";
 
 export default function Settings() {
   const navigate = useNavigate();
+  const { subjects, setSubjects, resetAllData } = useAttendanceData();
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+
+  const handleTimetableUpload = (data: ParsedTimetable) => {
+    const newSubjects = data.subjects.map((sub, index) => ({
+      ...sub,
+      id: Date.now() + index,
+      totalClasses: 0,
+      attendedClasses: 0,
+    }));
+    
+    setSubjects(newSubjects);
+    localStorage.setItem("timetable-schedule", JSON.stringify(data.schedule));
+    setUploadDialogOpen(false);
+    toast.success(`${newSubjects.length} subjects imported successfully!`);
+  };
+
+  const handleResetData = () => {
+    if (confirm("Are you sure you want to reset all data? This action cannot be undone.")) {
+      resetAllData();
+      toast.success("All data has been reset");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <h1 className="text-xl font-bold">Settings</h1>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <h1 className="text-xl font-bold">Settings</h1>
+            </div>
+            <ThemeToggle />
           </div>
         </div>
       </header>
@@ -52,21 +85,37 @@ export default function Settings() {
           </Button>
         </Card>
 
-        {/* Timetable */}
+        {/* Manage Subjects */}
         <Card className="p-6 space-y-4">
-          <div className="flex items-center gap-3 mb-2">
-            <FileUp className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-semibold">Timetable</h2>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-3">
+              <FileUp className="h-5 w-5 text-primary" />
+              <h2 className="text-lg font-semibold">Manage Subjects</h2>
+            </div>
+            <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <FileUp className="h-4 w-4 mr-2" />
+                  Upload Timetable
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Upload Timetable</DialogTitle>
+                </DialogHeader>
+                <TimetableUpload 
+                  onUploadComplete={handleTimetableUpload}
+                  onCancel={() => setUploadDialogOpen(false)}
+                />
+              </DialogContent>
+            </Dialog>
           </div>
           
           <p className="text-sm text-muted-foreground">
-            Upload a new timetable image to update your subjects and schedules
+            Add, edit, or remove subjects. You can also upload a new timetable to replace all subjects.
           </p>
 
-          <Button variant="outline" className="w-full">
-            <FileUp className="h-4 w-4" />
-            Upload New Timetable
-          </Button>
+          <SubjectManager subjects={subjects} onUpdate={setSubjects} />
         </Card>
 
         {/* Holidays & Leave */}
@@ -126,8 +175,8 @@ export default function Settings() {
             Clear all attendance data and reset the application
           </p>
 
-          <Button variant="destructive" className="w-full">
-            <Trash2 className="h-4 w-4" />
+          <Button variant="destructive" className="w-full" onClick={handleResetData}>
+            <Trash2 className="h-4 w-4 mr-2" />
             Reset All Data
           </Button>
         </Card>

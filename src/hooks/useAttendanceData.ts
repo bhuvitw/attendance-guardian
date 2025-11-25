@@ -33,7 +33,7 @@ const DEFAULT_SUBJECTS: Subject[] = [
 
 export function useAttendanceData() {
   // Initialize with function to read from local storage or use default
-  const [subjects, setSubjects] = useState<Subject[]>(() => {
+  const [subjects, setSubjectsState] = useState<Subject[]>(() => {
     try {
       const saved = localStorage.getItem("attendance-data");
       return saved ? JSON.parse(saved) : DEFAULT_SUBJECTS;
@@ -47,7 +47,7 @@ export function useAttendanceData() {
   }, [subjects]);
 
   const updateSubject = (id: number, status: "present" | "absent") => {
-    setSubjects((prev) =>
+    setSubjectsState((prev) =>
       prev.map((sub) => {
         if (sub.id !== id) return sub;
         return {
@@ -62,5 +62,16 @@ export function useAttendanceData() {
 
   const getSubject = (id: number) => subjects.find((s) => s.id === id);
 
-  return { subjects, updateSubject, getSubject };
+  const setSubjects = (newSubjects: Subject[]) => {
+    setSubjectsState(newSubjects);
+  };
+
+  const resetAllData = () => {
+    localStorage.removeItem("attendance-data");
+    localStorage.removeItem("timetable-schedule");
+    localStorage.removeItem("onboarded");
+    setSubjectsState(DEFAULT_SUBJECTS);
+  };
+
+  return { subjects, updateSubject, getSubject, setSubjects, resetAllData };
 }

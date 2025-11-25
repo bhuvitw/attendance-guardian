@@ -4,29 +4,35 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { TimetableUpload } from "@/components/TimetableUpload";
 import { Upload, Calendar, FileText, Check, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
+import { useAttendanceData } from "@/hooks/useAttendanceData";
+import { ParsedTimetable } from "@/lib/timetableParser";
 
 export default function Onboarding() {
   const [step, setStep] = useState(1);
-  const [timetableUploaded, setTimetableUploaded] = useState(false);
+  const [timetableData, setTimetableData] = useState<ParsedTimetable | null>(null);
+  const { setSubjects } = useAttendanceData();
 
-  const handleFileUpload = () => {
-    // Simulate file upload
-    setTimeout(() => {
-      setTimetableUploaded(true);
-      toast.success("Timetable extracted successfully!");
-    }, 1500);
+  const handleTimetableUpload = (data: ParsedTimetable) => {
+    setTimetableData(data);
+    localStorage.setItem("timetable-schedule", JSON.stringify(data.schedule));
   };
 
   const handleComplete = () => {
-    // 1. SAVE THE STATE so App.tsx knows you are done
+    if (timetableData) {
+      const newSubjects = timetableData.subjects.map((sub, index) => ({
+        ...sub,
+        id: Date.now() + index,
+        totalClasses: 0,
+        attendedClasses: 0,
+      }));
+      setSubjects(newSubjects);
+    }
+    
     localStorage.setItem("onboarded", "true");
-    
-    toast.success("Setup complete! Welcome to Attendance Risk Detector");
-    
-    // 2. FORCE RELOAD to ensure App.tsx re-checks the localStorage
-    // Using navigate("/") isn't enough because App.tsx state won't refresh automatically
+    toast.success("Setup complete! Welcome to Attendance Guardian");
     window.location.href = "/";
   };
 
@@ -85,27 +91,19 @@ export default function Onboarding() {
                 </p>
               </div>
 
-              <div className="border-2 border-dashed border-muted rounded-2xl p-12 text-center space-y-4 hover:border-primary transition-colors cursor-pointer">
-                <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Upload className="h-8 w-8 text-primary" />
-                </div>
-                <div>
-                  <p className="font-medium mb-1">Click to upload or drag and drop</p>
-                  <p className="text-sm text-muted-foreground">PNG, JPG or PDF (max. 10MB)</p>
-                </div>
-                <Button onClick={handleFileUpload} disabled={timetableUploaded}>
-                  {timetableUploaded ? "Timetable Uploaded" : "Upload Timetable"}
-                </Button>
-              </div>
+              <TimetableUpload onUploadComplete={handleTimetableUpload} />
 
-              {timetableUploaded && (
+              {timetableData && (
                 <div className="space-y-4 animate-in slide-in-from-bottom-4">
-                  <h3 className="font-semibold">Detected Subjects</h3>
-                  <div className="space-y-2">
-                    {["Data Structures", "Database Management", "Operating Systems", "Computer Networks"].map((subject) => (
-                      <div key={subject} className="flex items-center gap-3 p-3 rounded-lg bg-muted">
+                  <h3 className="font-semibold">Detected Subjects ({timetableData.subjects.length})</h3>
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {timetableData.subjects.map((subject) => (
+                      <div key={subject.code} className="flex items-center gap-3 p-3 rounded-lg bg-muted">
                         <Check className="h-4 w-4 text-primary" />
-                        <span className="font-medium">{subject}</span>
+                        <div className="flex-1">
+                          <span className="font-medium">{subject.name}</span>
+                          <p className="text-xs text-muted-foreground">{subject.code} - {subject.teacher}</p>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -116,10 +114,10 @@ export default function Onboarding() {
                 className="w-full"
                 size="lg"
                 onClick={() => setStep(2)}
-                disabled={!timetableUploaded}
+                disabled={!timetableData}
               >
                 Continue
-                <ArrowRight className="h-4 w-4" />
+                <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </Card>
           )}
@@ -171,7 +169,7 @@ export default function Onboarding() {
                 </Button>
                 <Button className="flex-1" onClick={() => setStep(3)}>
                   Continue
-                  <ArrowRight className="h-4 w-4" />
+                  <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
               </div>
             </Card>
@@ -228,7 +226,7 @@ export default function Onboarding() {
                 </Button>
                 <Button className="flex-1" onClick={() => setStep(4)}>
                   Continue
-                  <ArrowRight className="h-4 w-4" />
+                  <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
               </div>
             </Card>
@@ -249,7 +247,9 @@ export default function Onboarding() {
               <div className="space-y-4">
                 <div className="rounded-lg bg-muted p-4">
                   <h3 className="font-semibold mb-2">Subjects</h3>
-                  <p className="text-sm text-muted-foreground">4 subjects detected and configured</p>
+                  <p className="text-sm text-muted-foreground">
+                    {timetableData?.subjects.length || 0} subjects detected and configured
+                  </p>
                 </div>
 
                 <div className="rounded-lg bg-muted p-4">
@@ -269,7 +269,7 @@ export default function Onboarding() {
                 </Button>
                 <Button className="flex-1" onClick={handleComplete}>
                   Finish Setup
-                  <Check className="h-4 w-4" />
+                  <Check className="h-4 w-4 ml-2" />
                 </Button>
               </div>
             </Card>
